@@ -1,55 +1,50 @@
-name: Build and Push Docker Images
+name: CI/CD - Deploy Backend
 
 on:
   push:
     branches:
-      - main
+      - main  # Se ejecutará solo cuando haya un push a main
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      # Clonar el repositorio
+      - name: Checkout del código
         uses: actions/checkout@v3
+
+      # Instalar JDK y Maven
+      - name: Configurar JDK 22 y Maven
+        uses: actions/setup-java@v3
         with:
-          submodules: true
+          distribution: 'temurin'
+          java-version: '22'
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      - name: Compilar con Maven
+        run: mvn clean package -DskipTests
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
+      # Iniciar sesión en Docker Hub
+      - name: Login en Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      # Construir y etiquetar la imagen Docker
+      - name: Construir la imagen Docker
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/gestor-clientes-back:latest .
+
+      # Subir la imagen a Docker Hub
+      - name: Push de la imagen a Docker Hub
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/gestor-clientes-back:latest
+
+      # Desplegar en la instancia EC2
+      - name: Deploy en AWS EC2
+        uses: appleboy/ssh-action@v0.1.10
         with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-
-      - name: Build and push submodule1 image
-        run: |
-          docker build -t your-dockerhub-username/submodule1:${{ github.sha }} ./submodule1
-          docker push your-dockerhub-username/submodule1:${{ github.sha }}
-
-      - name: Build and push submodule2 image
-        run: |
-          docker build -t your-dockerhub-username/submodule2:${{ github.sha }} ./submodule2
-          docker push your-dockerhub-username/submodule2:${{ github.sha }}
-
-      - name: Notify main repo of update
-        uses: actions/github-script@v6
-        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            const response = await fetch('https://api.github.com/repos/main-repo-owner/main-repo/dispatches', {
-              method: 'POST',
-              headers: {
-                'Authorization': `token ${{ secrets.GITHUB_TOKEN }}`,
-                'Accept': 'application/vnd.github.v3+json',
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                event_type: 'submodule-update',
-                client_payload: {
-                  ref: '${{ github.sha }}'
-                }
-              })
-            });
-            console.log('Triggered main repo workflow:', await response.json());
+            docker pull ${{ secrets.DOCKER_USERNAME }}/gestor-clientes-back:latest
+            docker stop gestor-clientes-back || true
+            docker rm gestor-clientes-back || true
+            docker run -d --name gestor-clientes-back -p 8080:8080 --network my-network ${{ secrets.DOCKER_USERNAME }}/gestor-clientes-back:latest
