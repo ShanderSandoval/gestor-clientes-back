@@ -18,7 +18,7 @@ import java.util.Map;
 //http://localhost:8080/cm-app/
 @RequestMapping("cm-app") // Define la URL base para todas las rutas en esta clase como /rh-app.
 //Se indica que recibimos peticiones de otro puerto (El 3000 en este caso que viene de React)
-@CrossOrigin(value = "http://localhost:3000")
+@CrossOrigin(value = "*")
 public class ClienteControlador {
 
     //Con esta informacion mandamos la informacion a consola
