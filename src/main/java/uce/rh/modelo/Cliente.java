@@ -1,13 +1,13 @@
 package uce.rh.modelo;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+
+import java.util.List;
 
 //Creacion de las tablas
 @Entity
@@ -26,7 +26,10 @@ public class Cliente {
     Integer idCliente;
     String nombre;
     String cedula;
-    String direccion;
     String celular;
+
+    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<DetalleDireccion> direcciones;
 }
 

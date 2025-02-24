@@ -61,7 +61,6 @@ public class ClienteControlador {
             throw new RecursoNoEncontradoExcepcion("El id recibido no existe: " + id);
         cliente.setNombre(clienteRecibido.getNombre());
         cliente.setCedula(clienteRecibido.getCedula());
-        cliente.setDireccion(clienteRecibido.getDireccion());
         cliente.setCelular(clienteRecibido.getCelular());
         clienteServicio.guardarCliente(cliente);
         logger.info("Cliente a editar: " + cliente);
